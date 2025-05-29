@@ -17,12 +17,28 @@ struct ContentView: View {
                 frameHandler.startStreaming(from: newDevice)
             }
             .padding()
-
+            
+            // --- Add this block for resolution selection ---
+            if !cameraManager.availableFormats.isEmpty {
+                Picker("Resolution", selection: $cameraManager.selectedFormat) {
+                    ForEach(cameraManager.availableFormats, id: \.self) { format in
+                        Text(cameraManager.resolutionString(for: format)).tag(format as AVCaptureDevice.Format?)
+                    }
+                }
+                .onChange(of: cameraManager.selectedFormat) { newFormat in
+                    if let format = newFormat {
+                        cameraManager.setResolution(format: format)
+                    }
+                }
+                .padding()
+            }
+            
             CameraPreview(device: $cameraManager.selectedCamera)
                 .frame(width: 640, height: 480)
         }
         .onDisappear {
             frameHandler.stopStreaming()
         }
+        
     }
 }
