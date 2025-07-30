@@ -16,10 +16,16 @@ class FrameHandler: NSObject, ObservableObject {
     private var udpStreamer: UDPStreamer?
     private var session: AVCaptureSession?
     private var currentDevice: AVCaptureDevice?
+    @Published var targetIP: String = ""
+    @Published var targetPort: String = "15001"
 
     func startStreaming(from device: AVCaptureDevice?) {
         guard let device = device else { return }
         stopStreaming()
+        guard !targetIP.isEmpty, let port = UInt16(targetPort) else {
+            print("No target IP or port set")
+            return
+        }
 
         let session = AVCaptureSession()
         session.sessionPreset = .high
@@ -37,7 +43,7 @@ class FrameHandler: NSObject, ObservableObject {
             self.session = session
             self.videoOutput = output
             self.currentDevice = device
-            self.udpStreamer = UDPStreamer(host: "127.0.0.1", port: 15001)
+            self.udpStreamer = UDPStreamer(host: targetIP, port: port)
             session.startRunning()
         } catch {
             print("FrameHandler camera error: \(error)")

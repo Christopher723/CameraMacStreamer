@@ -11,7 +11,7 @@ class CameraManager: ObservableObject {
 
     func fetchCameras() {
         let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.externalUnknown, .builtInWideAngleCamera],
+            deviceTypes: [AVCaptureDevice.DeviceType.external, .builtInWideAngleCamera],
             mediaType: .video,
             position: .unspecified
         )
