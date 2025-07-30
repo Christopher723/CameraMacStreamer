@@ -1,14 +1,8 @@
-//
-//  FrameHandler.swift
-//  CameraMacStreamer
-//
-//  Created by Christopher Woods on 5/20/25.
-//
-
-
 import AVFoundation
 import CoreImage
 import UniformTypeIdentifiers
+import Foundation
+import Network
 
 class FrameHandler: NSObject, ObservableObject {
     private let context = CIContext()
@@ -18,6 +12,7 @@ class FrameHandler: NSObject, ObservableObject {
     private var currentDevice: AVCaptureDevice?
     @Published var targetIP: String = ""
     @Published var targetPort: String = "15001"
+    @Published var useTopHalfOnly: Bool = false
 
     func startStreaming(from device: AVCaptureDevice?) {
         guard let device = device else { return }
@@ -61,15 +56,24 @@ class FrameHandler: NSObject, ObservableObject {
 
 extension FrameHandler: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let cgImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
+        guard let cgImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer, useTopHalfOnly: useTopHalfOnly),
               let imageData = encodeImageToData(cgImage: cgImage) else { return }
         udpStreamer?.send(data: imageData)
     }
 
-    private func imageFromSampleBuffer(sampleBuffer: CMSampleBuffer) -> CGImage? {
+    private func imageFromSampleBuffer(sampleBuffer: CMSampleBuffer, useTopHalfOnly: Bool = false) -> CGImage? {
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
         let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-        return context.createCGImage(ciImage, from: ciImage.extent)
+        guard let fullCGImage = context.createCGImage(ciImage, from: ciImage.extent) else { return nil }
+        if !useTopHalfOnly {
+            return fullCGImage
+        }
+
+        // Crop to top half
+        let width = fullCGImage.width
+        let height = fullCGImage.height / 2
+        let cropRect = CGRect(x: 0, y: 0, width: width, height: height)
+        return fullCGImage.cropping(to: cropRect)
     }
 
     private func encodeImageToData(cgImage: CGImage) -> Data? {
@@ -84,3 +88,4 @@ extension FrameHandler: AVCaptureVideoDataOutputSampleBufferDelegate {
         return CGImageDestinationFinalize(destination) ? (data as Data) : nil
     }
 }
+
