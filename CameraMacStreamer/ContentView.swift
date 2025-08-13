@@ -17,8 +17,13 @@ struct ContentView: View {
                     .frame(width: 80)
             }
             .padding()
+            
             Toggle("Use Top Half Only", isOn: $frameHandler.useTopHalfOnly)
                     .padding()
+            
+            Toggle("Mirror Video", isOn: $frameHandler.mirrorVideo)
+                .padding()
+
             Button(isStreaming ? "Disconnect" : "Connect") {
                 if isStreaming {
                     frameHandler.stopStreaming()

@@ -13,6 +13,8 @@ class FrameHandler: NSObject, ObservableObject {
     @Published var targetIP: String = ""
     @Published var targetPort: String = "15001"
     @Published var useTopHalfOnly: Bool = false
+    @Published var mirrorVideo: Bool = false
+
 
     func startStreaming(from device: AVCaptureDevice?) {
         guard let device = device else { return }
@@ -63,18 +65,25 @@ extension FrameHandler: AVCaptureVideoDataOutputSampleBufferDelegate {
 
     private func imageFromSampleBuffer(sampleBuffer: CMSampleBuffer, useTopHalfOnly: Bool = false) -> CGImage? {
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
-        let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+        var ciImage = CIImage(cvPixelBuffer: imageBuffer)
+        
+    
+        if mirrorVideo {
+            let transform = CGAffineTransform(scaleX: -1, y: 1)
+            ciImage = ciImage.transformed(by: transform)
+        }
+        
         guard let fullCGImage = context.createCGImage(ciImage, from: ciImage.extent) else { return nil }
         if !useTopHalfOnly {
             return fullCGImage
         }
-
-        // Crop to top half
+        
         let width = fullCGImage.width
         let height = fullCGImage.height / 2
         let cropRect = CGRect(x: 0, y: 0, width: width, height: height)
         return fullCGImage.cropping(to: cropRect)
     }
+
 
     private func encodeImageToData(cgImage: CGImage) -> Data? {
         let data = NSMutableData()
